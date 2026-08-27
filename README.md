@@ -36,7 +36,7 @@ curl -sS -X POST http://localhost:8080/events \
 
 Workers consume `async` via Symfony Messenger + Redis. Set `API_KEY` in Compose/env for production.
 
-Endpoint list lives in [`config/packages/webhook.yaml`](config/packages/webhook.yaml) (defaults point at `https://httpbin.org/post` for a working smoke test).
+Endpoint list is configured via `WEBHOOK_ENDPOINTS` (JSON). Defaults point at `https://httpbin.org/post`; the e2e overlay points at the local `receiver` service.
 
 Inspect the dead-letter queue with:
 
