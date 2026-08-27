@@ -3,6 +3,7 @@
 parameters:
     env(REDIS_HOST): localhost
     env(REDIS_PORT): '6379'
+    env(API_KEY): change-me
 
 services:
     _defaults:
@@ -16,13 +17,16 @@ services:
             - '../src/RedisFactory.php'
             - '../src/CircuitBreaker/RedisCircuitBreaker.php'
             - '../src/RateLimit/EndpointConcurrencyLimiter.php'
-            - '../src/Security/ApiKeyAuthenticator.php'
 
     App\Webhook\WebhookEndpointRegistry:
         arguments:
             $configs: '%webhook.endpoints%'
 
     App\Messenger\FixedDelayRetryStrategy: ~
+
+    App\Security\ApiKeyAuthenticator:
+        arguments:
+            $apiKey: '%env(API_KEY)%'
 
     App\CircuitBreaker\CircuitBreakerInterface: '@App\CircuitBreaker\InMemoryCircuitBreaker'
     App\RateLimit\ConcurrencyLimiterInterface: '@App\RateLimit\InMemoryConcurrencyLimiter'
@@ -70,6 +74,7 @@ when@test:
               url: 'https://example.test/hooks/acme'
               secret: 'test-secret'
         webhook.circuit_breaker.failure_threshold: 3
+        env(API_KEY): test-api-key
 
     services:
         Symfony\Contracts\HttpClient\HttpClientInterface:

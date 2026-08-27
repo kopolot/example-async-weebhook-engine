@@ -11,6 +11,7 @@ services:
       MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
       MESSENGER_FAILED_TRANSPORT_DSN: redis://redis:6379/messages_failed
       LOCK_DSN: flock
+      API_KEY: change-me-in-real-deployments
       SERVER_NAME: ":80"
       FRANKENPHP_CONFIG: ""
     command: ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
@@ -29,6 +30,7 @@ services:
       MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
       MESSENGER_FAILED_TRANSPORT_DSN: redis://redis:6379/messages_failed
       LOCK_DSN: flock
+      API_KEY: change-me-in-real-deployments
     command: ["php", "bin/console", "messenger:consume", "async", "-vv", "--time-limit=3600", "--memory-limit=128M"]
     depends_on:
       redis:

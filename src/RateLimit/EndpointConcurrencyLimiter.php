@@ -50,13 +50,13 @@ LUA;
     public function run(string $endpointId, callable $callback): mixed
     {
         $key = $this->key($endpointId);
-        $acquired = (int) $this->redis->eval(
+        $acquiredRaw = $this->redis->eval(
             self::ACQUIRE_LUA,
             [$key, (string) $this->slotTtlSeconds, (string) $this->maxConcurrent],
             1,
         );
 
-        if ($acquired !== 1) {
+        if ($acquiredRaw !== 1 && $acquiredRaw !== '1') {
             throw new ConcurrencyLimitException($endpointId);
         }
 
