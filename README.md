@@ -30,10 +30,11 @@ Accept an event (returns immediately with `202`):
 ```bash
 curl -sS -X POST http://localhost:8080/events \
   -H 'Content-Type: application/json' \
+  -H 'X-Api-Key: change-me-in-real-deployments' \
   -d '{"event":"OrderPlaced","payload":{"order_id":"42"}}'
 ```
 
-Workers consume `async` (and `failed` for DLQ inspection) via Symfony Messenger + Redis.
+Workers consume `async` via Symfony Messenger + Redis. Set `API_KEY` in Compose/env for production.
 
 Endpoint list lives in [`config/packages/webhook.yaml`](config/packages/webhook.yaml) (defaults point at `https://httpbin.org/post` for a working smoke test).
 
@@ -45,10 +46,10 @@ docker compose exec worker php bin/console messenger:consume failed -vv --limit=
 
 ## Engineering decisions
 
-1. **Why a circuit breaker?** When a client endpoint fails repeatedly (default: 50 consecutive errors), Redis marks the circuit open for 60s. Workers stop hammering a dead host, which keeps the queue healthy for everyone else. After the open window, the next attempt is a half-open probe.
-2. **How are 5xx / timeouts handled?** `WebhookHttpClient` throws a retryable `WebhookDeliveryException`. Messenger uses a fixed delay strategy (`1m → 5m → 15m → 1h`). After four failures the message lands on the `failed` transport (DLQ) and `FailedWebhookLogger` records a critical log. Non-retryable 4xx responses are acknowledged and dropped (bad URL/payload should not loop forever).
-3. **Why concurrency limits?** A Redis semaphore (`max_concurrent: 2` per endpoint) prevents a burst of workers from stampeding one customer and earning a `429` ban. If the slot is full, delivery fails fast and retries with backoff.
-4. **Why Messenger + Redis instead of inline HTTP?** `POST /events` only enqueues work. HTTP latency of downstream clients never blocks the API; workers scale independently (`docker compose up --scale worker=3`).
+1. **Why a circuit breaker?** When a client endpoint fails repeatedly (default: 50 consecutive errors), Redis marks the circuit open for 60s. After the window expires, a single half-open probe is allowed (`SET NX`); other workers stay blocked until that probe succeeds or fails.
+2. **How are 5xx / timeouts handled?** `WebhookHttpClient` throws a retryable `WebhookDeliveryException`. Messenger uses a fixed delay strategy (`1m → 5m → 15m → 1h`). After four failures the message lands on the `failed` transport (DLQ) and `FailedWebhookLogger` records a critical log. Non-retryable 4xx responses are acknowledged and dropped.
+3. **Why concurrency limits?** An atomic Redis Lua semaphore (`max_concurrent: 2` per endpoint) prevents a burst of workers from stampeding one customer and earning a `429` ban. Acquire is a single EVAL round-trip so INCR/EXPIRE/cap cannot race.
+4. **Why Messenger + Redis instead of inline HTTP?** `POST /events` only enqueues work (after `X-Api-Key` auth). HTTP latency of downstream clients never blocks the API; workers scale independently (`docker compose up --scale worker=3`).
 
 ## Quality gates
 
@@ -57,11 +58,11 @@ composer phpstan   # level 9
 composer test      # PHPUnit unit + integration
 ```
 
-GitHub Actions runs both on every push/PR (`.github/workflows/ci.yml`).
+GitHub Actions runs both on every push/PR (`.github/workflows/ci.yml`), including Redis-backed integration tests.
 
 ## Stack
 
-- PHP 8.2+ / Symfony 7.4
+- PHP 8.4+ / Symfony 7.4
 - FrankenPHP (Caddy) + Redis
 - Symfony Messenger, HttpClient, Monolog
 - PHPStan 9, PHPUnit

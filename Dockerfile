@@ -1,6 +1,6 @@
 #syntax=docker/dockerfile:1
 
-FROM dunglas/frankenphp:1-php8.3
+FROM dunglas/frankenphp:1-php8.4
 
 RUN install-php-extensions \
     redis \

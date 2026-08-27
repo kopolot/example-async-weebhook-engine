@@ -56,6 +56,22 @@ final class InMemoryCircuitBreakerTest extends TestCase
 
         $clock->now = 1_000_011;
         $breaker->assertAvailable('acme');
+        self::assertTrue($breaker->hasProbe('acme'));
         self::assertFalse($breaker->isOpen('acme'));
+
+        $this->expectException(CircuitOpenException::class);
+        $breaker->assertAvailable('acme');
+    }
+
+    public function testClosedStateAllowsMultipleCallsWithoutProbe(): void
+    {
+        $breaker = new InMemoryCircuitBreaker(failureThreshold: 3, openSeconds: 60);
+
+        $breaker->assertAvailable('acme');
+        $breaker->recordSuccess('acme');
+        $breaker->assertAvailable('acme');
+        $breaker->recordSuccess('acme');
+
+        self::assertFalse($breaker->hasProbe('acme'));
     }
 }

@@ -3,6 +3,7 @@
 parameters:
     env(REDIS_HOST): localhost
     env(REDIS_PORT): '6379'
+    env(API_KEY): change-me
 
 services:
     _defaults:
@@ -23,6 +24,10 @@ services:
 
     App\Messenger\FixedDelayRetryStrategy: ~
 
+    App\Security\ApiKeyAuthenticator:
+        arguments:
+            $apiKey: '%env(API_KEY)%'
+
     App\CircuitBreaker\CircuitBreakerInterface: '@App\CircuitBreaker\InMemoryCircuitBreaker'
     App\RateLimit\ConcurrencyLimiterInterface: '@App\RateLimit\InMemoryConcurrencyLimiter'
 
@@ -35,7 +40,7 @@ services:
         arguments:
             $maxConcurrent: '%webhook.concurrency.max%'
 
-when@dev:
+when@dev: &redis_runtime
     services:
         Redis:
             class: Redis
@@ -60,30 +65,7 @@ when@dev:
         App\CircuitBreaker\CircuitBreakerInterface: '@App\CircuitBreaker\RedisCircuitBreaker'
         App\RateLimit\ConcurrencyLimiterInterface: '@App\RateLimit\EndpointConcurrencyLimiter'
 
-when@prod:
-    services:
-        Redis:
-            class: Redis
-            factory: ['App\RedisFactory', 'create']
-            arguments:
-                - '%env(REDIS_HOST)%'
-                - '%env(int:REDIS_PORT)%'
-
-        App\CircuitBreaker\RedisCircuitBreaker:
-            autowire: true
-            arguments:
-                $redis: '@Redis'
-                $failureThreshold: '%webhook.circuit_breaker.failure_threshold%'
-                $openSeconds: '%webhook.circuit_breaker.open_seconds%'
-
-        App\RateLimit\EndpointConcurrencyLimiter:
-            autowire: true
-            arguments:
-                $redis: '@Redis'
-                $maxConcurrent: '%webhook.concurrency.max%'
-
-        App\CircuitBreaker\CircuitBreakerInterface: '@App\CircuitBreaker\RedisCircuitBreaker'
-        App\RateLimit\ConcurrencyLimiterInterface: '@App\RateLimit\EndpointConcurrencyLimiter'
+when@prod: *redis_runtime
 
 when@test:
     parameters:
@@ -92,6 +74,7 @@ when@test:
               url: 'https://example.test/hooks/acme'
               secret: 'test-secret'
         webhook.circuit_breaker.failure_threshold: 3
+        env(API_KEY): test-api-key
 
     services:
         Symfony\Contracts\HttpClient\HttpClientInterface:

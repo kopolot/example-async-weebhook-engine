@@ -34,7 +34,10 @@ final class EventToWebhookFlowTest extends WebTestCase
         $client->request(
             'POST',
             '/events',
-            server: ['CONTENT_TYPE' => 'application/json'],
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_API_KEY' => 'test-api-key',
+            ],
             content: json_encode([
                 'event' => 'OrderPlaced',
                 'payload' => ['order_id' => '42'],
@@ -84,10 +87,30 @@ final class EventToWebhookFlowTest extends WebTestCase
         $client->request(
             'POST',
             '/events',
-            server: ['CONTENT_TYPE' => 'application/json'],
+            server: [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_API_KEY' => 'test-api-key',
+            ],
             content: '{"event":""}',
         );
 
         self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testMissingApiKeyReturnsUnauthorized(): void
+    {
+        $client = static::createClient();
+
+        $client->request(
+            'POST',
+            '/events',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode([
+                'event' => 'OrderPlaced',
+                'payload' => ['order_id' => '42'],
+            ], JSON_THROW_ON_ERROR),
+        );
+
+        self::assertResponseStatusCodeSame(401);
     }
 }
