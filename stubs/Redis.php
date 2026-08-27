@@ -54,6 +54,16 @@ class Redis
         return true;
     }
 
+    public function ping(mixed $message = null): bool|string|\Redis
+    {
+        return true;
+    }
+
+    public function flushDB(mixed $sync = null): bool
+    {
+        return true;
+    }
+
     /**
      * @param string|array<int, string> ...$keys
      */
