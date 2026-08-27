@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+parameters:
+    env(REDIS_HOST): localhost
+    env(REDIS_PORT): '6379'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            - '../src/RedisFactory.php'
+            - '../src/CircuitBreaker/RedisCircuitBreaker.php'
+            - '../src/RateLimit/EndpointConcurrencyLimiter.php'
+
+    App\Webhook\WebhookEndpointRegistry:
+        arguments:
+            $configs: '%webhook.endpoints%'
+
+    App\Messenger\FixedDelayRetryStrategy: ~
+
+    App\CircuitBreaker\CircuitBreakerInterface: '@App\CircuitBreaker\InMemoryCircuitBreaker'
+    App\RateLimit\ConcurrencyLimiterInterface: '@App\RateLimit\InMemoryConcurrencyLimiter'
+
+    App\CircuitBreaker\InMemoryCircuitBreaker:
+        arguments:
+            $failureThreshold: '%webhook.circuit_breaker.failure_threshold%'
+            $openSeconds: '%webhook.circuit_breaker.open_seconds%'
+
+    App\RateLimit\InMemoryConcurrencyLimiter:
+        arguments:
+            $maxConcurrent: '%webhook.concurrency.max%'
+
+when@dev:
+    services:
+        Redis:
+            class: Redis
+            factory: ['App\RedisFactory', 'create']
+            arguments:
+                - '%env(REDIS_HOST)%'
+                - '%env(int:REDIS_PORT)%'
+
+        App\CircuitBreaker\RedisCircuitBreaker:
+            autowire: true
+            arguments:
+                $redis: '@Redis'
+                $failureThreshold: '%webhook.circuit_breaker.failure_threshold%'
+                $openSeconds: '%webhook.circuit_breaker.open_seconds%'
+
+        App\RateLimit\EndpointConcurrencyLimiter:
+            autowire: true
+            arguments:
+                $redis: '@Redis'
+                $maxConcurrent: '%webhook.concurrency.max%'
+
+        App\CircuitBreaker\CircuitBreakerInterface: '@App\CircuitBreaker\RedisCircuitBreaker'
+        App\RateLimit\ConcurrencyLimiterInterface: '@App\RateLimit\EndpointConcurrencyLimiter'
+
+when@prod:
+    services:
+        Redis:
+            class: Redis
+            factory: ['App\RedisFactory', 'create']
+            arguments:
+                - '%env(REDIS_HOST)%'
+                - '%env(int:REDIS_PORT)%'
+
+        App\CircuitBreaker\RedisCircuitBreaker:
+            autowire: true
+            arguments:
+                $redis: '@Redis'
+                $failureThreshold: '%webhook.circuit_breaker.failure_threshold%'
+                $openSeconds: '%webhook.circuit_breaker.open_seconds%'
+
+        App\RateLimit\EndpointConcurrencyLimiter:
+            autowire: true
+            arguments:
+                $redis: '@Redis'
+                $maxConcurrent: '%webhook.concurrency.max%'
+
+        App\CircuitBreaker\CircuitBreakerInterface: '@App\CircuitBreaker\RedisCircuitBreaker'
+        App\RateLimit\ConcurrencyLimiterInterface: '@App\RateLimit\EndpointConcurrencyLimiter'
+
+when@test:
+    parameters:
+        webhook.endpoints:
+            - id: acme
+              url: 'https://example.test/hooks/acme'
+              secret: 'test-secret'
+        webhook.circuit_breaker.failure_threshold: 3
+
+    services:
+        Symfony\Contracts\HttpClient\HttpClientInterface:
+            synthetic: true
+            public: true
+
+        App\MessageHandler\DeliverWebhookHandler:
+            public: true
+            autowire: true
+            autoconfigure: true
+
+        App\CircuitBreaker\InMemoryCircuitBreaker:
+            public: true
+            autowire: true
+            autoconfigure: true
+            arguments:
+                $failureThreshold: '%webhook.circuit_breaker.failure_threshold%'
+                $openSeconds: '%webhook.circuit_breaker.open_seconds%'
+
+        App\CircuitBreaker\CircuitBreakerInterface: '@App\CircuitBreaker\InMemoryCircuitBreaker'

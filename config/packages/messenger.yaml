@@ -1,0 +1,25 @@
+framework:
+    messenger:
+        failure_transport: failed
+
+        transports:
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                retry_strategy:
+                    service: App\Messenger\FixedDelayRetryStrategy
+            failed: '%env(MESSENGER_FAILED_TRANSPORT_DSN)%'
+            sync: 'sync://'
+
+        routing:
+            App\Message\DispatchWebhooks: async
+            App\Message\DeliverWebhook: async
+
+when@test:
+    framework:
+        messenger:
+            transports:
+                async: 'sync://'
+                failed: 'in-memory://'
+            routing:
+                App\Message\DispatchWebhooks: async
+                App\Message\DeliverWebhook: async
