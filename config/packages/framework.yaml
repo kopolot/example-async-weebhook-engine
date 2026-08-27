@@ -1,0 +1,10 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_client:
+        default_options:
+            timeout: 5
+
+when@test:
+    framework:
+        test: true
