@@ -4,7 +4,6 @@ parameters:
     env(REDIS_HOST): localhost
     env(REDIS_PORT): '6379'
     env(API_KEY): change-me
-    env(WEBHOOK_ENDPOINTS): '[{"id":"acme","url":"https://httpbin.org/post","secret":"acme-shared-secret"},{"id":"beta","url":"https://httpbin.org/post","secret":"beta-shared-secret"}]'
 
 services:
     _defaults:
