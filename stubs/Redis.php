@@ -42,6 +42,19 @@ class Redis
     }
 
     /**
+     * @param array<int, string> $args
+     */
+    public function eval(string $script, array $args = [], int $numKeys = 0): mixed
+    {
+        return 1;
+    }
+
+    public function set(string $key, mixed $value, mixed $options = null): bool|string|\Redis
+    {
+        return true;
+    }
+
+    /**
      * @param string|array<int, string> ...$keys
      */
     public function del(string|array ...$keys): int|false
