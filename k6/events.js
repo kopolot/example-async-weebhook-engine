@@ -39,6 +39,7 @@ export function postEvent() {
         'X-Api-Key': API_KEY,
       },
       tags: { name: 'events_accepted' },
+      responseCallback: http.expectedStatuses(202),
     },
   );
 
@@ -59,6 +60,7 @@ export function missingApiKey() {
     {
       headers: { 'Content-Type': 'application/json' },
       tags: { name: 'events_unauthorized' },
+      responseCallback: http.expectedStatuses(401),
     },
   );
 

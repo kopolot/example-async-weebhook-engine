@@ -58,11 +58,24 @@ composer phpstan   # level 9
 composer test      # PHPUnit unit + integration
 ```
 
-GitHub Actions runs both on every push/PR (`.github/workflows/ci.yml`), including Redis-backed integration tests.
+### E2E (live Compose stack) and k6
+
+```bash
+# Full organism test: API → Redis → worker → local receiver
+./scripts/e2e.sh
+
+# Or keep the stack up and run load afterwards
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build
+MANAGED_STACK=1 ./scripts/e2e.sh
+./scripts/k6.sh
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml down
+```
+
+GitHub Actions runs PHPStan/PHPUnit and the Compose e2e + k6 job on every push/PR.
 
 ## Stack
 
 - PHP 8.4+ / Symfony 7.4
 - FrankenPHP (Caddy) + Redis
 - Symfony Messenger, HttpClient, Monolog
-- PHPStan 9, PHPUnit
+- PHPStan 9, PHPUnit, k6
