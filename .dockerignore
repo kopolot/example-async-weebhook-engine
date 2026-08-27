@@ -1,0 +1,13 @@
+.git
+.github
+.phpunit.cache
+var
+vendor
+tests
+phpunit.dist.xml
+phpstan.neon
+stubs
+.dockerignore
+.env.local
+.env.*.local
+*.md

@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      APP_ENV: prod
+      APP_SECRET: change-me-in-real-deployments
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
+      MESSENGER_FAILED_TRANSPORT_DSN: redis://redis:6379/messages_failed
+      LOCK_DSN: flock
+      SERVER_NAME: ":80"
+      FRANKENPHP_CONFIG: ""
+    command: ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
+    depends_on:
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  worker:
+    build: .
+    environment:
+      APP_ENV: prod
+      APP_SECRET: change-me-in-real-deployments
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
+      MESSENGER_FAILED_TRANSPORT_DSN: redis://redis:6379/messages_failed
+      LOCK_DSN: flock
+    command: ["php", "bin/console", "messenger:consume", "async", "-vv", "--time-limit=3600", "--memory-limit=128M"]
+    depends_on:
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
