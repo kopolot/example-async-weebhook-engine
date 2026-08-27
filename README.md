@@ -61,7 +61,7 @@ GitHub Actions runs both on every push/PR (`.github/workflows/ci.yml`).
 
 ## Stack
 
-- PHP 8.2+ / Symfony 7.4
+- PHP 8.4+ / Symfony 7.4
 - FrankenPHP (Caddy) + Redis
 - Symfony Messenger, HttpClient, Monolog
 - PHPStan 9, PHPUnit
