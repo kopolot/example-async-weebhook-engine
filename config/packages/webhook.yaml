@@ -2,10 +2,4 @@ parameters:
     webhook.circuit_breaker.failure_threshold: 50
     webhook.circuit_breaker.open_seconds: 60
     webhook.concurrency.max: 2
-    webhook.endpoints:
-        - id: acme
-          url: 'https://httpbin.org/post'
-          secret: 'acme-shared-secret'
-        - id: beta
-          url: 'https://httpbin.org/post'
-          secret: 'beta-shared-secret'
+    webhook.endpoints: '%env(json:WEBHOOK_ENDPOINTS)%'
