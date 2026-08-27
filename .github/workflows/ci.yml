@@ -42,3 +42,39 @@ jobs:
           REDIS_HOST: 127.0.0.1
           REDIS_PORT: '6379'
         run: vendor/bin/phpunit
+
+  e2e:
+    name: E2E & k6
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start e2e stack
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build
+
+      - name: Run organism e2e
+        env:
+          MANAGED_STACK: '1'
+          API_KEY: change-me-in-real-deployments
+        run: ./scripts/e2e.sh
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run k6 load
+        env:
+          BASE_URL: http://localhost:8080
+          API_KEY: change-me-in-real-deployments
+        run: ./scripts/k6.sh
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml logs --tail=200
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml down --remove-orphans
